@@ -61,7 +61,7 @@
                         <id>default-cli</id>
                         <configuration>
                             <mainClass>
-                                com.yueshuya.wumpus.wumpus_world/com.yueshuya.wumpus.wumpus_world.HelloApplication
+                                com.yueshuya.wumpus.wumpus_world/com.yueshuya.wumpus.wumpus_world.WumpusApplication
                             </mainClass>
                             <launcher>app</launcher>
                             <jlinkZipName>app</jlinkZipName>

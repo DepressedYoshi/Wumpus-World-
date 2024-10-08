@@ -1,19 +1,18 @@
 package com.yueshuya.wumpus.wumpus_world;
 
 import javafx.application.Application;
-import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 
 import java.io.IOException;
 
-public class HelloApplication extends Application {
+public class WumpusApplication extends Application {
     @Override
     public void start(Stage stage) throws IOException {
-        FXMLLoader fxmlLoader = new FXMLLoader(HelloApplication.class.getResource("hello-view.fxml"));
-        Scene scene = new Scene(fxmlLoader.load(), 320, 240);
-        stage.setTitle("Hello!");
-        stage.setScene(scene);
+        WumpusController hc = new WumpusController(this);
+        Scene rootScene = new Scene(hc.getAnchorPane(), 1024, 768);
+        stage.setTitle("Wumpus Worls");
+        stage.setScene(rootScene);
         stage.show();
     }
 
