@@ -18,6 +18,7 @@ public class World {
     public static final int GLITTER = 8;
     public static final int PLAYER = 9;
     public static final int SIZE=50;
+    private static int PREVAL = 0;
 
     private final int[][] neighbor = {
             {-1,0}, {0,1}, {1,0},{0,-1}, {-1,-1,},{-1,1},{1,1},{1,-1}
@@ -50,6 +51,7 @@ public class World {
         random = new Random();
         placePlayer(player);
         populateWorld();
+        printGrid();
     }
 
     private void placePlayer(Player player) {
@@ -58,51 +60,103 @@ public class World {
         grid[row][col] = PLAYER;
     }
 
-    public void populateWorld() {
-        genHazrd(WUMPUS, 1);
+    private void populateWorld() {
+        placeTreasure(); // Place the treasure first
+        genHazrd(WUMPUS, 1); // Then generate the hazards
         genHazrd(PIT, random.nextInt(4) + 2);
         genHazrd(SPIDER, random.nextInt(2) + 1);
-        placeTreasure();
     }
+
+    private void placeTreasure() {
+        int row, col;
+        do {
+            row = random.nextInt(grid.length);
+            col = random.nextInt(grid[0].length);
+        } while (grid[row][col] != EMPTY || !notClose(row, col));
+
+        grid[row][col] = TREASURE;
+        for (int i = 0; i < 4; i++) {
+            int newrow = row+neighbor[i][0];
+            int newcol = col+neighbor[i][1];
+            if (isValidIndex(new Point2D(newrow, newcol)))
+                grid[newrow][newcol] = GLITTER;
+        }
+    }
+
 
 
     private void genHazrd(int hazard, int count) {
         while (count > 0) {
             int row = random.nextInt(grid.length);
             int col = random.nextInt(grid[0].length);
-            placeHazard(hazard, row, col);
-            count--;
+            if (notClose(row, col)){
+                placeHazard(hazard, row, col);
+                count--;
+            }
         }
     }
     private void placeHazard(int hazard, int row, int col) {
-            if (grid[row][col] == EMPTY && notClose(row, col)) {
+            if (grid[row][col] == EMPTY) {
                 grid[row][col] = hazard;
+                for (int i = 0; i < 4; i++) {
+                    int newrow = row+neighbor[i][0];
+                    int newcol = col+neighbor[i][1];
+                    if (isValidIndex(new Point2D(newrow, newcol)))
+                        grid[newrow][newcol] = getSensory(hazard);
+                }
             }
     }
 
+    private int getSensory(int hazard) {
+        switch (hazard){
+            case WUMPUS :
+                return STINK;
+            case PIT:
+                return BREEZ;
+            case SPIDER:
+                return WEB;
+            case TREASURE:
+                return GLITTER;
+            default:
+                return EMPTY;
+        }
+    }
+
     private boolean notClose(int row, int col) {
-        for(int[] n : neighbor){
-            if (isValidIndex(row+n[0],col+n[1])){
-                if (grid[row+n[0]][col+n[1]] != 0){
-                    return false;
+        // Ensure that hazards are not placed too close to the player
+        if (grid[row][col] != EMPTY) {
+            return false; // Do not place hazard at the player's location
+        }
+
+        for(int[] n : neighbor) {
+            Point2D location = new Point2D(row + n[1], col + n[0]);
+            if (isValidIndex(location)) {
+                if (getTile(location) != EMPTY) {
+                    return false; // There's something nearby, avoid placing hazard here
                 }
             }
         }
         return true;
     }
 
-    private boolean isValidIndex(int i, int i1) {
+
+    private boolean isValidIndex(Point2D location) {
+        int i = (int) location.getX();
+        int i1 = (int) location.getY();
         return i >= 0 && i1 >= 0 && i < grid.length && i1 < grid[0].length;
     }
 
-    private void placeTreasure() {
-        int row = random.nextInt(grid.length);
-        int col = random.nextInt(grid[0].length);
-        grid[row][col] = TREASURE;
-    }
 
     public int getTile(Point2D location) {
-        return grid[(int) location.getY()][(int) location.getX()];
+            return grid[(int) location.getY()][(int) location.getX()];
+    }
+
+    public void movePlayer(Point2D point2D, Player player) {
+        grid[(int) player.getCurrentLocation().getY()][(int) player.getCurrentLocation().getX()] = PREVAL;
+        int col = (int) point2D.getX();
+        int row = (int) point2D.getY();
+        PREVAL = grid[row][col];
+        grid[row][col] = PLAYER;
     }
 
     private ImageView loadImage(String path) {
@@ -215,5 +269,19 @@ public class World {
 
     public ImageView getWumpustile() {
         return wumpustile;
+    }
+
+    public int[][] getGrid() {
+        return grid;
+    }
+
+    private void printGrid(){
+        for (int[] i : grid){
+            for (int j : i){
+                System.out.print(j + " ");
+            }
+            System.out.println();
+        }
+        System.out.println();
     }
 }

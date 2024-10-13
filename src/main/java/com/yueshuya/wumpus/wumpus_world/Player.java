@@ -14,26 +14,47 @@ public class Player {
     }
 
     public boolean move(String direction, World world) {
-        moveHistory.push(new Point2D(currentLocation.getY(), currentLocation.getX()));
+        moveHistory.push(currentLocation);  // Correct coordinate order
+
+        Point2D newLocation;
 
         switch (direction.toLowerCase()) {
             case "up":
-                currentLocation = new Point2D(currentLocation.getY() - 1, currentLocation.getX());
+                newLocation = new Point2D(currentLocation.getX(), currentLocation.getY() - 1);  // Moving up reduces the Y-coordinate
                 break;
             case "down":
-                currentLocation = new Point2D(currentLocation.getY() + 1, currentLocation.getX());
+                newLocation = new Point2D(currentLocation.getX(), currentLocation.getY() + 1);  // Moving down increases the Y-coordinate
                 break;
             case "left":
-                currentLocation = new Point2D(currentLocation.getY(), currentLocation.getX() - 1);
+                newLocation = new Point2D(currentLocation.getX() - 1, currentLocation.getY());  // Moving left reduces the X-coordinate
                 break;
             case "right":
-                currentLocation = new Point2D(currentLocation.getY(), currentLocation.getX() + 1);
+                newLocation = new Point2D(currentLocation.getX() + 1, currentLocation.getY());  // Moving right increases the X-coordinate
                 break;
             default:
                 return false;
         }
 
-        return true;
+        // Check if the new location is within the boundaries of the world
+        if (isWithinBounds(newLocation, world)) {
+            world.movePlayer(newLocation, this);
+            currentLocation = newLocation;
+            return true;
+        } else {
+            // If out of bounds, don't move the player
+            System.out.println("player think its out of bounds - did nto moure");
+            moveHistory.pop();  // Undo the move history push
+            return false;
+        }
+    }
+
+    private boolean isWithinBounds(Point2D location, World world) {
+        int rows = world.getGrid().length;        // Y-dimension
+        int cols = world.getGrid()[0].length;     // X-dimension
+        double x = location.getX();
+        double y = location.getY();
+
+        return x >= 0 && x < cols && y >= 0 && y < rows;
     }
 
     public void backtrack() {
