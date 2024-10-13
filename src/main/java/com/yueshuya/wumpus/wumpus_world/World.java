@@ -51,7 +51,6 @@ public class World {
         random = new Random();
         placePlayer(player);
         populateWorld();
-        printGrid();
     }
 
     private void placePlayer(Player player) {
@@ -61,10 +60,10 @@ public class World {
     }
 
     private void populateWorld() {
-        placeTreasure(); // Place the treasure first
-        genHazrd(WUMPUS, 1); // Then generate the hazards
-        genHazrd(PIT, random.nextInt(4) + 2);
-        genHazrd(SPIDER, random.nextInt(2) + 1);
+        placeTreasure();
+        genHazrd(WUMPUS,1);
+        genHazrd(PIT,2);
+        genHazrd(SPIDER,2);
     }
 
     private void placeTreasure() {
@@ -105,6 +104,7 @@ public class World {
                         grid[newrow][newcol] = getSensory(hazard);
                 }
             }
+
     }
 
     private int getSensory(int hazard) {
@@ -123,16 +123,12 @@ public class World {
     }
 
     private boolean notClose(int row, int col) {
-        // Ensure that hazards are not placed too close to the player
-        if (grid[row][col] != EMPTY) {
-            return false; // Do not place hazard at the player's location
-        }
+        if (grid[row][col] != EMPTY) {return false;}
 
         for(int[] n : neighbor) {
-            Point2D location = new Point2D(row + n[1], col + n[0]);
-            if (isValidIndex(location)) {
-                if (getTile(location) != EMPTY) {
-                    return false; // There's something nearby, avoid placing hazard here
+            if (isValidIndex(new Point2D(row + n[1], col + n[0]))) {
+                if (grid[row + n[1]][col + n[0]] != EMPTY) {
+                    return false;
                 }
             }
         }
@@ -161,7 +157,6 @@ public class World {
 
     private ImageView loadImage(String path) {
         Image image = new Image(getClass().getResourceAsStream(path));
-        // Create an ImageView and set its size to 50x50
         ImageView imageView = new ImageView(image);
         imageView.setFitWidth(50);
         imageView.setFitHeight(50);
