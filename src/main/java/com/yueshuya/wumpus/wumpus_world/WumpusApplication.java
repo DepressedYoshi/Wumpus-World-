@@ -11,7 +11,7 @@ import java.io.IOException;
 import static com.yueshuya.wumpus.wumpus_world.WumpusController.drawMap;
 
 public class WumpusApplication extends Application {
-    private Player player = new Player(new Point2D(0,9));
+    private Player player = new Player();
     private World world = new World(10, 10, this.player);  //;
     private AnimationTimer animationTimer;
 
@@ -30,18 +30,23 @@ public class WumpusApplication extends Application {
     }
 
     public void movePlayer(String direction) {
-        player.move(direction, world);
-        checkGameState();  // Check if the player has encountered a hazard or treasure
+        if (player.move(direction, world)){
+            checkGameState();  // Check if the player has encountered a hazard or treasure
+        }
         drawMap();  // Refresh the map after each move
     }
 
     private void checkGameState() {
-        Point2D playerLocation = player.getCurrentLocation();
-        int tileValue = world.getTile(playerLocation);
+        int tileValue = world.PREVAL;
         if (tileValue == World.TREASURE) {
             System.out.println("You found the treasure! Now return to the start.");
+            player.setHasGold(true);
         } else if (tileValue == World.WUMPUS || tileValue == World.PIT || tileValue == World.SPIDER) {
             System.out.println("Game Over: You encountered a hazard!");
+            world.setGameover(true);
+
+        }else if (player.HasGold() && player.getCurrentLocation().equals(player.getStartLocation())){
+            System.out.println("WIN CONDITON MET");
         }
     }
 

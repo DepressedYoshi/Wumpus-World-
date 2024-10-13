@@ -17,9 +17,11 @@ public class World {
     public static final int STINK = 7;
     public static final int GLITTER = 8;
     public static final int PLAYER = 9;
+    public static final int EMPTY_CHEST = 20;
     public static final int SIZE=50;
-    private static int PREVAL = 0;
+    public static int PREVAL = 0;
 
+    private static boolean gameover = false;
     private final int[][] neighbor = {
             {-1,0}, {0,1}, {1,0},{0,-1}, {-1,-1,},{-1,1},{1,1},{1,-1}
     };
@@ -45,6 +47,14 @@ public class World {
     private ImageView webTile = loadImage("/lib/webTile.png");
     private ImageView windTile = loadImage("/lib/windTile.png");
     private ImageView wumpustile = loadImage("/lib/wumpusTile.png");
+
+    public static boolean isGameover() {
+        return gameover;
+    }
+
+    public static void setGameover(boolean gameover) {
+        World.gameover = gameover;
+    }
 
     public World(int rows, int cols, Player player) {
         grid = new int[rows][cols];
@@ -148,7 +158,11 @@ public class World {
     }
 
     public void movePlayer(Point2D point2D, Player player) {
-        grid[(int) player.getCurrentLocation().getY()][(int) player.getCurrentLocation().getX()] = PREVAL;
+        if (PREVAL == TREASURE){
+            grid[(int) player.getCurrentLocation().getY()][(int) player.getCurrentLocation().getX()] = EMPTY_CHEST;
+        }else {
+            grid[(int) player.getCurrentLocation().getY()][(int) player.getCurrentLocation().getX()] = PREVAL;
+        }
         int col = (int) point2D.getX();
         int row = (int) point2D.getY();
         PREVAL = grid[row][col];
@@ -165,26 +179,28 @@ public class World {
 
     public ImageView getImage(int i, int j) {
         switch (getTile(new Point2D(i,j))){
-            case 0:
+            case EMPTY:
                 return groundTile;
-            case 1:
+            case WUMPUS:
                 return wumpustile;
-            case 2:
+            case PIT:
                 return pitTile;
-            case 3:
+            case SPIDER:
                 return spidertile;
-            case 4:
+            case TREASURE:
                 return goldTile;
-            case 5:
+            case WEB:
                 return webTile;
-            case 6:
+            case BREEZ:
                 return windTile;
-            case 7:
+            case STINK:
                 return stinkTtie;
-            case 8:
+            case GLITTER:
                 return glitterTile;
-            case 9:
+            case PLAYER:
                 return guy;
+            case EMPTY_CHEST:
+                return emptyChest;
             default:
                 return blackTile;
         }

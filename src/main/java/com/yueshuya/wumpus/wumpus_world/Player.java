@@ -7,13 +7,31 @@ import java.util.Stack;
 public class Player {
     private Point2D currentLocation;
     private Stack<Point2D> moveHistory;
+    private static boolean hasGold = false;
 
-    public Player(Point2D startLocation) {
+    private Point2D startLocation = new Point2D(0,9);
+
+    public static boolean HasGold() {
+        return hasGold;
+    }
+
+    public Point2D getStartLocation() {
+        return startLocation;
+    }
+
+    public static void setHasGold(boolean hasGold) {
+        Player.hasGold = hasGold;
+    }
+
+    public Player() {
         currentLocation = startLocation;
         moveHistory = new Stack<>();
     }
 
     public boolean move(String direction, World world) {
+        if (world.isGameover()){
+            return false;
+        }
         moveHistory.push(currentLocation);  // Correct coordinate order
 
         Point2D newLocation;
@@ -42,7 +60,6 @@ public class Player {
             return true;
         } else {
             // If out of bounds, don't move the player
-            System.out.println("player think its out of bounds - did nto moure");
             moveHistory.pop();  // Undo the move history push
             return false;
         }
