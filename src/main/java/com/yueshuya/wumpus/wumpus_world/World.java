@@ -4,6 +4,7 @@ import javafx.geometry.Point2D;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 
+import java.util.Objects;
 import java.util.Random;
 
 public class World {
@@ -17,9 +18,9 @@ public class World {
     public static final int STINK = 7;
     public static final int GLITTER = 8;
     public static final int PLAYER = 9;
-    public static final int EMPTY_CHEST = 20;
+    public static final int EMPTY_CHEST = 10;
     public static final int SIZE=50;
-    public static int PREVAL = 0;
+    private static int PREVAL = 0;
 
     private static boolean gameover = false;
     private final int[][] neighbor = {
@@ -27,26 +28,27 @@ public class World {
     };
     private int[][] grid;
     private Random random;
+    private final Player player;
 
-    private ImageView blackTile = loadImage("/lib/blackTile.png");
-    private ImageView downArrow = loadImage("/lib/downArrow.png");
-    private ImageView emptyChest = loadImage("/lib/emptyChest.png");
-    private ImageView glitterTile = loadImage("/lib/glitterTile.png");
-    private ImageView goldTile = loadImage("/lib/goldTile.png");
-    private ImageView groundTile = loadImage("/lib/groundTile.png");
-    private ImageView guy = loadImage("/lib/guy.png");
-    private ImageView leftArrow = loadImage("/lib/leftArrow.png");
-    private ImageView pitTile = loadImage("/lib/pitTile.png");
-    private ImageView plus = loadImage("/lib/plus.png");
-    private ImageView question = loadImage("/lib/question.png");
-    private ImageView rightArrow = loadImage("/lib/rightArrow.png");
-    private ImageView spidertile = loadImage("/lib/spiderTile.png");
-    private ImageView stinkTtie = loadImage("/lib/stinkTile.png");
-    private ImageView trophy = loadImage("/lib/trophy.png");
-    private ImageView upArrow = loadImage("/lib/upArrow.png");
-    private ImageView webTile = loadImage("/lib/webTile.png");
-    private ImageView windTile = loadImage("/lib/windTile.png");
-    private ImageView wumpustile = loadImage("/lib/wumpusTile.png");
+    private final ImageView blackTile = loadImage("/lib/blackTile.png");
+    private final ImageView downArrow = loadImage("/lib/downArrow.png");
+    private final ImageView emptyChest = loadImage("/lib/emptyChest.png");
+    private final ImageView glitterTile = loadImage("/lib/glitterTile.png");
+    private final ImageView goldTile = loadImage("/lib/goldTile.png");
+    private final ImageView groundTile = loadImage("/lib/groundTile.png");
+    private final ImageView guy = loadImage("/lib/guy.png");
+    private final ImageView leftArrow = loadImage("/lib/leftArrow.png");
+    private final ImageView pitTile = loadImage("/lib/pitTile.png");
+    private final ImageView plus = loadImage("/lib/plus.png");
+    private final ImageView question = loadImage("/lib/question.png");
+    private final ImageView rightArrow = loadImage("/lib/rightArrow.png");
+    private final ImageView spidertile = loadImage("/lib/spiderTile.png");
+    private final ImageView stinkTtie = loadImage("/lib/stinkTile.png");
+    private final ImageView trophy = loadImage("/lib/trophy.png");
+    private final ImageView upArrow = loadImage("/lib/upArrow.png");
+    private final ImageView webTile = loadImage("/lib/webTile.png");
+    private final ImageView windTile = loadImage("/lib/windTile.png");
+    private final ImageView wumpustile = loadImage("/lib/wumpusTile.png");
 
     public static boolean isGameover() {
         return gameover;
@@ -59,11 +61,13 @@ public class World {
     public World(int rows, int cols, Player player) {
         grid = new int[rows][cols];
         random = new Random();
-        placePlayer(player);
+        this.player = player;
+        placePlayer();
         populateWorld();
+        genFogOfWar();
     }
 
-    private void placePlayer(Player player) {
+    private void placePlayer() {
         int row = (int) player.getCurrentLocation().getY();
         int col = (int) player.getCurrentLocation().getX();
         grid[row][col] = PLAYER;
@@ -158,52 +162,98 @@ public class World {
     }
 
     public void movePlayer(Point2D point2D, Player player) {
-        if (PREVAL == TREASURE){
-            grid[(int) player.getCurrentLocation().getY()][(int) player.getCurrentLocation().getX()] = EMPTY_CHEST;
-        }else {
-            grid[(int) player.getCurrentLocation().getY()][(int) player.getCurrentLocation().getX()] = PREVAL;
-        }
         int col = (int) point2D.getX();
         int row = (int) point2D.getY();
+        //check if player hit the sput
+        if (getRealPre() == TREASURE){
+            grid[(int) player.getCurrentLocation().getY()][(int) player.getCurrentLocation().getX()] = EMPTY_CHEST;
+        }
+        else {
+            grid[(int) player.getCurrentLocation().getY()][(int) player.getCurrentLocation().getX()] = getRealPre();
+        }
         PREVAL = grid[row][col];
         grid[row][col] = PLAYER;
     }
 
+    public void genFogOfWar(){
+        for (int i = 0; i < grid.length; i++) {
+            for (int j = 0; j < grid[0].length; j++) {
+                if (grid[i][j] != PLAYER){
+                    genFog(i, j);
+                }
+            }
+        }
+    }
+    private void genFog(int row, int col){
+        int val = grid[row][col];
+        if (val <= 10){
+            grid[row][col] += 20;
+        }
+    }
+    public void clearAllFog(){
+        for (int i = 0; i < grid.length; i++) {
+            for (int j = 0; j < grid[0].length; j++) {
+                clearFog(i, j);
+            }
+        }
+    }
+
+    private void clearFog(int row, int col) {
+        int val = grid[row][col];
+        if (val > 15){
+            grid[row][col] -= 20;
+        }
+    }
+
     private ImageView loadImage(String path) {
-        Image image = new Image(getClass().getResourceAsStream(path));
+        Image image = new Image(Objects.requireNonNull(getClass().getResourceAsStream(path)));
         ImageView imageView = new ImageView(image);
         imageView.setFitWidth(50);
         imageView.setFitHeight(50);
         return imageView;
     }
 
-    public ImageView getImage(int i, int j) {
-        switch (getTile(new Point2D(i,j))){
-            case EMPTY:
-                return groundTile;
-            case WUMPUS:
-                return wumpustile;
-            case PIT:
-                return pitTile;
-            case SPIDER:
-                return spidertile;
-            case TREASURE:
-                return goldTile;
-            case WEB:
-                return webTile;
-            case BREEZ:
-                return windTile;
-            case STINK:
-                return stinkTtie;
-            case GLITTER:
-                return glitterTile;
-            case PLAYER:
-                return guy;
-            case EMPTY_CHEST:
-                return emptyChest;
-            default:
-                return blackTile;
+    public ImageView getImage(int i) {
+        return switch (i) {
+            case EMPTY -> groundTile;
+            case WUMPUS -> wumpustile;
+            case PIT -> pitTile;
+            case SPIDER -> spidertile;
+            case TREASURE -> goldTile;
+            case WEB -> webTile;
+            case BREEZ -> windTile;
+            case STINK -> stinkTtie;
+            case GLITTER -> glitterTile;
+            case PLAYER -> guy;
+            case EMPTY_CHEST -> emptyChest;
+            default -> blackTile;
+        };
+    }
+
+    public void reset() {
+        PREVAL = 0;
+        placePlayer();
+        genFogOfWar();
+    }
+
+    public void clear() {
+        for (int i = 0; i < grid.length; i++) {
+            for (int j = 0; j < grid[0].length; j++) {
+                if (grid[i][j]==PLAYER){
+                    grid[i][j] = getRealPre();
+                }
+                if (grid[i][j] == EMPTY_CHEST){
+                    grid[i][j] = TREASURE;
+                }
+            }
         }
+    }
+
+    public int getRealPre() {
+        if (PREVAL > 10){
+            return PREVAL - 20;
+        }
+        return PREVAL;
     }
 
     public ImageView getBlackTile() {
@@ -294,5 +344,10 @@ public class World {
             System.out.println();
         }
         System.out.println();
+    }
+
+    public ImageView getRealBackground() {
+        return getImage(getRealPre());
+
     }
 }

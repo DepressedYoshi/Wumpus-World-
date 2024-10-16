@@ -2,18 +2,16 @@ package com.yueshuya.wumpus.wumpus_world;
 
 import javafx.animation.AnimationTimer;
 import javafx.application.Application;
-import javafx.geometry.Point2D;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
-
 import java.io.IOException;
-
 import static com.yueshuya.wumpus.wumpus_world.WumpusController.drawMap;
 
 public class WumpusApplication extends Application {
-    private Player player = new Player();
-    private World world = new World(10, 10, this.player);  //;
+    private final Player player = new Player();
+    private final World world = new World(10, 10, this.player);  //;
     private AnimationTimer animationTimer;
+    private boolean isBlind = true;
 
     public Player getPlayer() {
         return player;
@@ -37,7 +35,7 @@ public class WumpusApplication extends Application {
     }
 
     private void checkGameState() {
-        int tileValue = world.PREVAL;
+        int tileValue = world.getRealPre();
         if (tileValue == World.TREASURE) {
             System.out.println("You found the treasure! Now return to the start.");
             player.setHasGold(true);
@@ -48,6 +46,23 @@ public class WumpusApplication extends Application {
         }else if (player.HasGold() && player.getCurrentLocation().equals(player.getStartLocation())){
             System.out.println("WIN CONDITON MET");
         }
+    }
+
+    public void toggleFog() {isBlind = !isBlind;
+        if (!isBlind){
+            world.clearAllFog();
+        }else{
+            world.genFogOfWar();
+        }
+        drawMap();
+    }
+
+    public void reset() {
+        world.clear();
+        player.reset();
+        world.reset();
+        World.setGameover(false);
+        System.out.println("Game has been reset.");
     }
 
     @Override

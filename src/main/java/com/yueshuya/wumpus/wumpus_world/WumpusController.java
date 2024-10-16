@@ -76,6 +76,7 @@ public class WumpusController {
         AnchorPane.setTopAnchor(button, topAnchor);
         AnchorPane.setRightAnchor(button, rightAnchor);
         anchorPane.getChildren().add(button);
+        button.setFocusTraversable(false);
         return button;
     }
 
@@ -95,9 +96,6 @@ public class WumpusController {
 
     protected void handleKeyInput(KeyEvent keyEvent) {
         switch (keyEvent.getCode()) {
-            case SPACE:
-                toggleFogOfWar();
-                break;
             case UP:
                 app.movePlayer("up");
                 break;
@@ -109,6 +107,12 @@ public class WumpusController {
                 break;
             case RIGHT:
                 app.movePlayer("right");
+                break;
+            case R:
+                app.reset();
+                break;
+            case SPACE:
+                app.toggleFog();
                 break;
             default:
                 break;
@@ -144,8 +148,11 @@ public class WumpusController {
         for (int i = 0; i < 10; i++) {
             for (int j = 0; j < 10; j++) {
                 gc.drawImage(world.getGroundTile().getImage(),XOFFSET+j*World.SIZE, YOFFSET+i*World.SIZE);
-                if (world.getTile(new Point2D(j,i)) >0){
-                    ImageView imageView = world.getImage(j,i);
+                if (world.getTile(new Point2D(j,i)) > 0){
+                    if (world.getRealPre() != 0){
+                        gc.drawImage(world.getRealBackground().getImage(),XOFFSET+j*World.SIZE, YOFFSET+i*World.SIZE);
+                    }
+                    ImageView imageView = world.getImage(world.getTile(new Point2D(j, i)));
                     if (imageView!= null && imageView.getImage() !=null){
                         gc.drawImage(imageView.getImage(), XOFFSET+j*World.SIZE, YOFFSET+i*World.SIZE);
                     }

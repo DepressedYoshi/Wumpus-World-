@@ -2,14 +2,19 @@ package com.yueshuya.wumpus.wumpus_world;
 
 import javafx.geometry.Point2D;
 
+import java.lang.ref.PhantomReference;
 import java.util.Stack;
 
 public class Player {
     private Point2D currentLocation;
     private Stack<Point2D> moveHistory;
     private static boolean hasGold = false;
+    private final Point2D startLocation = new Point2D(0,9);
 
-    private Point2D startLocation = new Point2D(0,9);
+    public Player() {
+        currentLocation = startLocation;
+        moveHistory = new Stack<>();
+    }
 
     public static boolean HasGold() {
         return hasGold;
@@ -21,11 +26,6 @@ public class Player {
 
     public static void setHasGold(boolean hasGold) {
         Player.hasGold = hasGold;
-    }
-
-    public Player() {
-        currentLocation = startLocation;
-        moveHistory = new Stack<>();
     }
 
     public boolean move(String direction, World world) {
@@ -82,5 +82,11 @@ public class Player {
 
     public Point2D getCurrentLocation() {
         return currentLocation;
+    }
+
+    public void reset() {
+        currentLocation = startLocation;
+        moveHistory.clear();
+        hasGold = false;
     }
 }
