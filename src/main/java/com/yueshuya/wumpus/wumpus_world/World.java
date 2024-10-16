@@ -122,18 +122,13 @@ public class World {
     }
 
     private int getSensory(int hazard) {
-        switch (hazard){
-            case WUMPUS :
-                return STINK;
-            case PIT:
-                return BREEZ;
-            case SPIDER:
-                return WEB;
-            case TREASURE:
-                return GLITTER;
-            default:
-                return EMPTY;
-        }
+        return switch (hazard) {
+            case WUMPUS -> STINK;
+            case PIT -> BREEZ;
+            case SPIDER -> WEB;
+            case TREASURE -> GLITTER;
+            default -> EMPTY;
+        };
     }
 
     private boolean notClose(int row, int col) {
@@ -186,10 +181,15 @@ public class World {
     }
     private void genFog(int row, int col){
         int val = grid[row][col];
-        if (val <= 10){
+        if (val <= 10 && notBeenThere(new Point2D(col,row))){
             grid[row][col] += 20;
         }
     }
+
+    private boolean notBeenThere(Point2D point2D) {
+        return !player.getMoveHistory().contains(point2D);
+    }
+
     public void clearAllFog(){
         for (int i = 0; i < grid.length; i++) {
             for (int j = 0; j < grid[0].length; j++) {
@@ -256,22 +256,9 @@ public class World {
         return PREVAL;
     }
 
-    public ImageView getBlackTile() {
-        return blackTile;
-    }
-
     public ImageView getDownArrow() {
         return downArrow;
     }
-
-    public ImageView getEmptyChest() {
-        return emptyChest;
-    }
-
-    public ImageView getGlitterTile() {
-        return glitterTile;
-    }
-
     public ImageView getGoldTile() {
         return goldTile;
     }
@@ -280,20 +267,12 @@ public class World {
         return groundTile;
     }
 
-    public ImageView getGuy() {
-        return guy;
-    }
-
     public ImageView getLeftArrow() {
         return leftArrow;
     }
 
     public ImageView getPitTile() {
         return pitTile;
-    }
-
-    public ImageView getPlus() {
-        return plus;
     }
 
     public ImageView getQuestion() {
@@ -308,24 +287,8 @@ public class World {
         return spidertile;
     }
 
-    public ImageView getStinkTtie() {
-        return stinkTtie;
-    }
-
-    public ImageView getTrophy() {
-        return trophy;
-    }
-
     public ImageView getUpArrow() {
         return upArrow;
-    }
-
-    public ImageView getWebTile() {
-        return webTile;
-    }
-
-    public ImageView getWindTile() {
-        return windTile;
     }
 
     public ImageView getWumpustile() {

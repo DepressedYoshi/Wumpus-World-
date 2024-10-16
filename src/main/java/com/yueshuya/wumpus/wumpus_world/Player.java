@@ -1,13 +1,10 @@
 package com.yueshuya.wumpus.wumpus_world;
-
 import javafx.geometry.Point2D;
-
-import java.lang.ref.PhantomReference;
 import java.util.Stack;
 
 public class Player {
     private Point2D currentLocation;
-    private Stack<Point2D> moveHistory;
+    private final Stack<Point2D> moveHistory;
     private static boolean hasGold = false;
     private final Point2D startLocation = new Point2D(0,9);
 
@@ -29,7 +26,7 @@ public class Player {
     }
 
     public boolean move(String direction, World world) {
-        if (world.isGameover()){
+        if (World.isGameover()){
             return false;
         }
         moveHistory.push(currentLocation);  // Correct coordinate order
@@ -88,5 +85,9 @@ public class Player {
         currentLocation = startLocation;
         moveHistory.clear();
         hasGold = false;
+    }
+
+    public Stack<Point2D> getMoveHistory() {
+        return moveHistory;
     }
 }

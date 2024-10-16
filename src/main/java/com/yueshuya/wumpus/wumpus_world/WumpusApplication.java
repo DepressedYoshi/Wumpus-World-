@@ -12,6 +12,7 @@ public class WumpusApplication extends Application {
     private final World world = new World(10, 10, this.player);  //;
     private AnimationTimer animationTimer;
     private boolean isBlind = true;
+    private int score = 1000;
 
     public Player getPlayer() {
         return player;
@@ -38,13 +39,16 @@ public class WumpusApplication extends Application {
         int tileValue = world.getRealPre();
         if (tileValue == World.TREASURE) {
             System.out.println("You found the treasure! Now return to the start.");
-            player.setHasGold(true);
+            Player.setHasGold(true);
         } else if (tileValue == World.WUMPUS || tileValue == World.PIT || tileValue == World.SPIDER) {
             System.out.println("Game Over: You encountered a hazard!");
-            world.setGameover(true);
+            World.setGameover(true);
 
-        }else if (player.HasGold() && player.getCurrentLocation().equals(player.getStartLocation())){
+        }else if (Player.HasGold() && player.getCurrentLocation().equals(player.getStartLocation())){
             System.out.println("WIN CONDITON MET");
+        }
+        if (score < 1 ){
+            System.out.println("Dude, stop, are your stupid.");
         }
     }
 
@@ -62,7 +66,7 @@ public class WumpusApplication extends Application {
         player.reset();
         world.reset();
         World.setGameover(false);
-        System.out.println("Game has been reset.");
+        score = 1000;
     }
 
     @Override
