@@ -33,6 +33,7 @@ public class WumpusApplication extends Application {
             checkGameState();  // Check if the player has encountered a hazard or treasure
         }
         drawMap();  // Refresh the map after each move
+        world.printGrid();
     }
 
     private void checkGameState() {

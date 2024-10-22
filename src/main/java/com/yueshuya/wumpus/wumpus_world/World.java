@@ -73,13 +73,16 @@ public class World {
         grid[row][col] = PLAYER;
     }
 
+    // Ensure grid is only updated after careful checks
     private void populateWorld() {
         placeTreasure();
-        genHazrd(WUMPUS,1);
-        genHazrd(PIT,2);
-        genHazrd(SPIDER,2);
+        genHazrd(WUMPUS, 1);
+        genHazrd(PIT, 4);
+        genHazrd(SPIDER, 3);
     }
 
+
+    // Place treasure using strict proximity checks
     private void placeTreasure() {
         int row, col;
         do {
@@ -88,37 +91,40 @@ public class World {
         } while (grid[row][col] != EMPTY || !notClose(row, col));
 
         grid[row][col] = TREASURE;
-        for (int i = 0; i < 4; i++) {
-            int newrow = row+neighbor[i][0];
-            int newcol = col+neighbor[i][1];
-            if (isValidIndex(new Point2D(newrow, newcol)))
-                grid[newrow][newcol] = GLITTER;
-        }
+        placeSensory(GLITTER, row, col);
     }
 
 
 
+    // Generate hazards with strict checks on surroundings
     private void genHazrd(int hazard, int count) {
         while (count > 0) {
             int row = random.nextInt(grid.length);
             int col = random.nextInt(grid[0].length);
-            if (notClose(row, col)){
-                placeHazard(hazard, row, col);
-                count--;
+            if (notClose(row, col)) {
+                if (placeHazard(hazard, row, col)) {
+                    count--;
+                }
             }
         }
     }
-    private void placeHazard(int hazard, int row, int col) {
-            if (grid[row][col] == EMPTY) {
-                grid[row][col] = hazard;
-                for (int i = 0; i < 4; i++) {
-                    int newrow = row+neighbor[i][0];
-                    int newcol = col+neighbor[i][1];
-                    if (isValidIndex(new Point2D(newrow, newcol)))
-                        grid[newrow][newcol] = getSensory(hazard);
-                }
+    // Place a hazard, ensuring no sensory tiles are overridden
+    private boolean placeHazard(int hazard, int row, int col) {
+        if (grid[row][col] == EMPTY && notClose(row, col)) {
+            grid[row][col] = hazard;
+            placeSensory(getSensory(hazard), row, col);
+            return true;
+        }
+        return false;
+    }
+    private void placeSensory(int sensoryType, int row, int col) {
+        for (int i = 0; i < 4; i++) {
+            int newRow = row + neighbor[i][0];
+            int newCol = col + neighbor[i][1];
+            if (isValidIndex(newRow, newCol) && grid[newRow][newCol] == EMPTY) {
+                grid[newRow][newCol] = sensoryType;
             }
-
+        }
     }
 
     private int getSensory(int hazard) {
@@ -132,11 +138,15 @@ public class World {
     }
 
     private boolean notClose(int row, int col) {
-        if (grid[row][col] != EMPTY) {return false;}
-
-        for(int[] n : neighbor) {
-            if (isValidIndex(new Point2D(row + n[1], col + n[0]))) {
-                if (grid[row + n[1]][col + n[0]] != EMPTY) {
+        if (grid[row][col] != EMPTY) {
+            return false;
+        }
+        for (int[] n : neighbor) {
+            int newRow = row + n[0];
+            int newCol = col + n[1];
+            if (isValidIndex(newRow, newCol)) {
+                // Ensure no hazards or sensory tiles nearby
+                if (grid[newRow][newCol] != EMPTY) {
                     return false;
                 }
             }
@@ -145,6 +155,9 @@ public class World {
     }
 
 
+    private boolean isValidIndex(int row, int col) {
+        return row >= 0 && row < grid.length && col >= 0 && col < grid[0].length;
+    }
     private boolean isValidIndex(Point2D location) {
         int i = (int) location.getX();
         int i1 = (int) location.getY();
@@ -159,16 +172,21 @@ public class World {
     public void movePlayer(Point2D point2D, Player player) {
         int col = (int) point2D.getX();
         int row = (int) point2D.getY();
+        int currRow = (int) player.getCurrentLocation().getY();
+        int currCol = (int) player.getCurrentLocation().getX();
         //check if player hit the sput
         if (getRealPre() == TREASURE){
-            grid[(int) player.getCurrentLocation().getY()][(int) player.getCurrentLocation().getX()] = EMPTY_CHEST;
+            grid[currRow][currCol] = EMPTY_CHEST;
+            placeHazard(EMPTY_CHEST,currRow,currCol);
         }
         else {
-            grid[(int) player.getCurrentLocation().getY()][(int) player.getCurrentLocation().getX()] = getRealPre();
+            grid[currRow][currCol] = getRealPre();
         }
         PREVAL = grid[row][col];
         grid[row][col] = PLAYER;
     }
+
+
 
     public void genFogOfWar(){
         for (int i = 0; i < grid.length; i++) {
@@ -299,7 +317,7 @@ public class World {
         return grid;
     }
 
-    private void printGrid(){
+    public void printGrid(){
         for (int[] i : grid){
             for (int j : i){
                 System.out.print(j + " ");
