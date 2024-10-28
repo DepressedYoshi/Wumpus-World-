@@ -114,13 +114,13 @@ public class WumpusController {
             case SPACE:
                 app.toggleFog();
                 break;
+            case A:
+                app.toggleAIControl();
             default:
                 break;
         }
     }
 
-    private void toggleFogOfWar() {
-    }
 
     private void handleButtonClick(ActionEvent actionEvent) {
         if (actionEvent.getSource() == pitButton){

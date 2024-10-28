@@ -5,6 +5,8 @@ import javafx.application.Application;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 import java.io.IOException;
+import java.nio.file.attribute.FileAttribute;
+
 import static com.yueshuya.wumpus.wumpus_world.WumpusController.drawMap;
 
 public class WumpusApplication extends Application {
@@ -13,6 +15,10 @@ public class WumpusApplication extends Application {
     private AnimationTimer animationTimer;
     private boolean isBlind = true;
     private int score = 1000;
+
+    //AI parts
+    private AIPlayer aiPlayer;
+    private boolean isAIControlled = false;
 
     public Player getPlayer() {
         return player;
@@ -33,7 +39,6 @@ public class WumpusApplication extends Application {
             checkGameState();  // Check if the player has encountered a hazard or treasure
         }
         drawMap();  // Refresh the map after each move
-        world.printGrid();
     }
 
     private void checkGameState() {
@@ -68,6 +73,8 @@ public class WumpusApplication extends Application {
         world.reset();
         World.setGameover(false);
         score = 1000;
+        // Reset AI state if AI is enabled
+        isAIControlled = false;
     }
 
     @Override
@@ -82,7 +89,11 @@ public class WumpusApplication extends Application {
             animationTimer = new AnimationTimer() {
                 @Override
                 public void handle(long l) {
+                    if(isAIControlled && !World.isGameover()){
+                        aiPlayer.runAI();
+                    }
                     drawMap();
+
                 }
             };
             animationTimer.start();
@@ -93,4 +104,15 @@ public class WumpusApplication extends Application {
     public static void main(String[] args) {
         launch();
     }
+
+    protected void toggleAIControl() {
+        isAIControlled = !isAIControlled;
+        if (isAIControlled) {
+            System.out.println("AI Control Enabled");
+            aiPlayer = new AIPlayer(player, world); // Re-initialize AI
+        } else {
+            System.out.println("Manual Control Enabled");
+        }
+    }
+
 }

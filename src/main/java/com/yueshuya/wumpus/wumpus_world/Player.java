@@ -4,7 +4,7 @@ import java.util.Stack;
 
 public class Player {
     private Point2D currentLocation;
-    private final Stack<Point2D> moveHistory;
+    protected final Stack<Point2D> moveHistory;
     private static boolean hasGold = false;
     private final Point2D startLocation = new Point2D(0,9);
 
@@ -74,6 +74,7 @@ public class Player {
     public void backtrack() {
         if (!moveHistory.isEmpty()) {
             currentLocation = moveHistory.pop();
+            System.out.println("tried to back trackt");
         }
     }
 
