@@ -1,9 +1,10 @@
 package com.yueshuya.wumpus.wumpus_world;
+
 import javafx.geometry.Point2D;
 import java.util.*;
 
 public class AIPlayer {
-    private static Player player;
+    private final Player player;
     private final World world;
     private final PriorityQueue<Node> openList;
     private final Set<Point2D> closedList;
@@ -23,7 +24,6 @@ public class AIPlayer {
     }
 
     public void runAI() {
-        // Initial setup if AI starts from beginning
         if (openList.isEmpty()) {
             Node startNode = new Node(currentLocation, 0, calculateHeuristic(currentLocation));
             openList.add(startNode);
@@ -33,30 +33,33 @@ public class AIPlayer {
         // Run one step of the AI's movement
         if (!openList.isEmpty()) {
             Node current = openList.poll();
+            System.out.println("Current AI Location: " + currentLocation);
 
-            // If treasure is found, set flag
             if (world.getRealPre() == World.TREASURE) {
                 foundTreasure = true;
                 Player.setHasGold(true);
+                System.out.println("Treasure found! Returning to start.");
                 return;
             }
 
-            // Mark current node as explored
             closedList.add(currentLocation);
 
-            // Explore neighbors and decide the move
             String direction = selectBestMove(currentLocation);
             if (direction != null) {
-                boolean moved = player.move(direction, world);  // Execute move
+                System.out.println("AI selected direction: " + direction);
+                boolean moved = player.move(direction, world);
                 if (moved) {
-                    // Update current location and player state after moving
                     currentLocation = player.getCurrentLocation();
+                    System.out.println("Moved to new location: " + currentLocation);
+                } else {
+                    System.out.println("Move failed: " + direction);
                 }
+            } else {
+                System.out.println("No valid direction found; AI is stuck.");
             }
         }
     }
 
-    // Decides the next direction to move based on A* algorithm evaluation
     private String selectBestMove(Point2D currentPosition) {
         List<String> directions = Arrays.asList("up", "down", "left", "right");
         String bestDirection = null;
@@ -65,38 +68,38 @@ public class AIPlayer {
         for (String direction : directions) {
             Point2D neighborPos = getNeighborPosition(currentPosition, direction);
 
-            // Ensure the position is valid and not already visited
             if (isValidMove(neighborPos) && !closedList.contains(neighborPos)) {
-                System.out.println("we are calculating: " + neighborPos);
                 double heuristic = calculateHeuristic(neighborPos);
+                System.out.println("Evaluating direction " + direction + " with heuristic: " + heuristic);
+
                 if (heuristic < lowestHeuristic) {
                     lowestHeuristic = heuristic;
                     bestDirection = direction;
                 }
+            } else {
+                System.out.println("Direction " + direction + " is invalid or already visited.");
             }
         }
 
-        // Fallback if no optimal move is found: select the first valid direction
         if (bestDirection == null) {
+            System.out.println("Fallback needed: no optimal move found.");
             for (String direction : directions) {
                 Point2D fallbackPos = getNeighborPosition(currentPosition, direction);
                 if (isValidMove(fallbackPos)) {
                     bestDirection = direction;
+                    System.out.println("Using fallback direction: " + bestDirection);
                     break;
                 }
             }
         }
 
-        System.out.println("The best direction is " + bestDirection);
-        return bestDirection; // Returns null if no valid direction found
+        return bestDirection;
     }
 
     private double calculateHeuristic(Point2D position) {
         double heuristic = 0;
-        int tile = world.getTile(position);
-        if (tile == World.PLAYER){
-            tile = world.getRealPre();
-        }
+        int tile = world.getBackTile(position);
+
         switch (tile) {
             case World.BREEZ -> heuristic += 5;
             case World.WEB -> heuristic += 5;
@@ -104,13 +107,13 @@ public class AIPlayer {
             case World.GLITTER -> heuristic -= 50;
         }
 
-        // Manhattan distance to the treasure location (if known)
         Point2D treasureLocation = findTreasure();
         if (treasureLocation != null) {
             heuristic += Math.abs(position.getX() - treasureLocation.getX()) +
                     Math.abs(position.getY() - treasureLocation.getY());
         }
 
+        System.out.println("Heuristic for position " + position + " is: " + heuristic);
         return heuristic;
     }
 
@@ -125,17 +128,21 @@ public class AIPlayer {
     }
 
     private boolean isValidMove(Point2D position) {
-        return player.getMoveHistory().contains(position) &&
-                position.getX() >= 0 && position.getX() < 10 &&
+        boolean valid = position.getX() >= 0 && position.getX() < 10 &&
                 position.getY() >= 0 && position.getY() < 10 &&
-                world.getTile(position) != World.WUMPUS &&
-                world.getTile(position) != World.PIT &&
-                world.getTile(position) != World.SPIDER;
+                world.getBackTile(position) != World.WUMPUS &&
+                world.getBackTile(position) != World.PIT &&
+                world.getBackTile(position) != World.SPIDER;
+        if (!valid) {
+            System.out.println("Position " + position + " is not a valid move.");
+        }
+        return valid;
     }
 
     private Point2D findTreasure() {
         for (Map.Entry<Point2D, Node> entry : nodes.entrySet()) {
-            if (world.getTile(entry.getKey()) == World.GLITTER) {
+            if (world.getBackTile(entry.getKey()) == World.GLITTER) {
+                System.out.println("Treasure detected at position: " + entry.getKey());
                 return entry.getKey();
             }
         }

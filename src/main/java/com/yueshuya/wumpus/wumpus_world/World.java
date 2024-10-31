@@ -168,6 +168,15 @@ public class World {
     public int getTile(Point2D location) {
             return grid[(int) location.getY()][(int) location.getX()];
     }
+    public int getBackTile(Point2D location) {
+            int answer = grid[(int) location.getY()][(int) location.getX()];
+            if (answer == PLAYER){
+                return getRealPre();
+            }else {
+                return answer;
+            }
+
+    }
 
     public void movePlayer(Point2D point2D, Player player) {
         int col = (int) point2D.getX();
