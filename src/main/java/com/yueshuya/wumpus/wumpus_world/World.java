@@ -58,10 +58,10 @@ public class World {
         World.gameover = gameover;
     }
 
-    public World(int rows, int cols, Player player) {
+    public World(int rows, int cols, WumpusApplication application) {
         grid = new int[rows][cols];
         random = new Random();
-        this.player = player;
+        this.player = application.getPlayer();
         placePlayer();
         populateWorld();
         genFogOfWar();

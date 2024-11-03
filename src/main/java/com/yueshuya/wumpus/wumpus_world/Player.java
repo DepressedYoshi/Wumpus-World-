@@ -29,7 +29,7 @@ public class Player {
         if (World.isGameover()){
             return false;
         }
-        moveHistory.push(currentLocation);  // Correct coordinate order
+        ;  // Correct coordinate order
 
         Point2D newLocation;
 
@@ -54,10 +54,10 @@ public class Player {
         if (isWithinBounds(newLocation, world)) {
             world.movePlayer(newLocation, this);
             currentLocation = newLocation;
+            moveHistory.push(currentLocation);
             return true;
         } else {
             // If out of bounds, don't move the player
-            moveHistory.pop();  // Undo the move history push
             return false;
         }
     }
@@ -71,12 +71,6 @@ public class Player {
         return x >= 0 && x < cols && y >= 0 && y < rows;
     }
 
-    public void backtrack() {
-        if (!moveHistory.isEmpty()) {
-            currentLocation = moveHistory.pop();
-            System.out.println("tried to back trackt");
-        }
-    }
 
     public Point2D getCurrentLocation() {
         return currentLocation;

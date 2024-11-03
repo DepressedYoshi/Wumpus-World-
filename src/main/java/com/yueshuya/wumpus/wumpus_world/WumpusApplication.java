@@ -11,7 +11,7 @@ import static com.yueshuya.wumpus.wumpus_world.WumpusController.drawMap;
 
 public class WumpusApplication extends Application {
     private final Player player = new Player();
-    private final World world = new World(10, 10, this.player);  //;
+    private final World world = new World(10, 10, this);  //;
     private AnimationTimer animationTimer;
     private boolean isBlind = true;
     private int score = 1000;
@@ -75,6 +75,7 @@ public class WumpusApplication extends Application {
         score = 1000;
         // Reset AI state if AI is enabled
         isAIControlled = false;
+        aiPlayer.reset();
     }
 
     @Override
@@ -87,12 +88,20 @@ public class WumpusApplication extends Application {
         rootScene.setOnKeyReleased(hc::handleKeyInput);
         if (animationTimer == null){
             animationTimer = new AnimationTimer() {
+                private long lastUpdate = 0;
+                private final long DELAY = 100_000_000;
                 @Override
                 public void handle(long l) {
-                    if(isAIControlled && !World.isGameover()){
-                        aiPlayer.runAI();
+                    if (l - lastUpdate >= DELAY) {
+                        if(isAIControlled && !World.isGameover()){
+                            aiPlayer.runAI();
+                        }
+                        checkGameState();
+                        drawMap();
+                        lastUpdate = l;
                     }
-                    drawMap();
+
+
 
                 }
             };
@@ -109,7 +118,7 @@ public class WumpusApplication extends Application {
         isAIControlled = !isAIControlled;
         if (isAIControlled) {
             System.out.println("AI Control Enabled");
-            aiPlayer = new AIPlayer(player, world); // Re-initialize AI
+            aiPlayer = new AIPlayer(player,world); // Re-initialize AI
         } else {
             System.out.println("Manual Control Enabled");
         }
