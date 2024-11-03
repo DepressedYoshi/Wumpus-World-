@@ -5,19 +5,20 @@ import javafx.application.Application;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 import java.io.IOException;
-import java.nio.file.attribute.FileAttribute;
 
 import static com.yueshuya.wumpus.wumpus_world.WumpusController.drawMap;
 
 public class WumpusApplication extends Application {
     private final Player player = new Player();
     private final World world = new World(10, 10, this);  //;
+    private WumpusController controller = new WumpusController(this);
     private AnimationTimer animationTimer;
     private boolean isBlind = true;
     private int score = 1000;
+    private String gameState = "Hello, Welcome the Wumpus World, navigate with WASD and try to find the treasure. Good Luck! \n \n \n Press A for AI, Press R for Reset";
 
     //AI parts
-    private AIPlayer aiPlayer;
+    private AIPlayer aiPlayer = new AIPlayer(player, world);
     private boolean isAIControlled = false;
 
     public Player getPlayer() {
@@ -37,26 +38,29 @@ public class WumpusApplication extends Application {
     public void movePlayer(String direction) {
         if (player.move(direction, world)){
             checkGameState();  // Check if the player has encountered a hazard or treasure
+            addScore(-1);
         }
         drawMap();  // Refresh the map after each move
     }
 
-    private void checkGameState() {
+    public void checkGameState() {
         int tileValue = world.getRealPre();
         if (tileValue == World.TREASURE) {
-            System.out.println("You found the treasure! Now return to the start.");
+            addScore(50);
+            gameState = "You found the treasure! Now return to the start.";
             Player.setHasGold(true);
         } else if (tileValue == World.WUMPUS || tileValue == World.PIT || tileValue == World.SPIDER) {
-            System.out.println("Game Over: You encountered a hazard!");
+            gameState ="Game Over: You encountered a hazard!";
             World.setGameover(true);
-
-        }else if (Player.HasGold() && player.getCurrentLocation().equals(player.getStartLocation())){
-            System.out.println("WIN CONDITON MET");
+        } else if (Player.HasGold() && player.getCurrentLocation().equals(player.getStartLocation())) {
+            gameState ="HOOORAY!!! YOU WIN";
+            World.setGameover(true);
         }
-        if (score < 1 ){
-            System.out.println("Dude, stop, are your stupid.");
+        if (score < 1) {
+            gameState ="Dude, stop, are you stupid.";
         }
     }
+
 
     public void toggleFog() {isBlind = !isBlind;
         if (!isBlind){
@@ -76,33 +80,27 @@ public class WumpusApplication extends Application {
         // Reset AI state if AI is enabled
         isAIControlled = false;
         aiPlayer.reset();
+        gameState = "Press A for AI, Press R for Reset";
     }
 
     @Override
     public void start(Stage stage) throws IOException {
-        WumpusController hc = new WumpusController(this);
-        Scene rootScene = new Scene(hc.getAnchorPane(), 1280, 800);
+        Scene rootScene = new Scene(controller.getAnchorPane(), 1280, 800);
         stage.setTitle("Wumpus Worlds");
         stage.setScene(rootScene);
 
-        rootScene.setOnKeyReleased(hc::handleKeyInput);
+        rootScene.setOnKeyReleased(controller::handleKeyInput);
         if (animationTimer == null){
             animationTimer = new AnimationTimer() {
-                private long lastUpdate = 0;
-                private final long DELAY = 100_000_000;
+
                 @Override
                 public void handle(long l) {
-                    if (l - lastUpdate >= DELAY) {
+
                         if(isAIControlled && !World.isGameover()){
                             aiPlayer.runAI();
                         }
                         checkGameState();
                         drawMap();
-                        lastUpdate = l;
-                    }
-
-
-
                 }
             };
             animationTimer.start();
@@ -124,4 +122,21 @@ public class WumpusApplication extends Application {
         }
     }
 
+    public int getScore() {
+        return score;
+    }
+    public void addScore(int score){
+        this.score += score;
+    }
+
+    public String getMessage(int i) {
+        switch (i){
+            case 1 -> {
+                return gameState;
+            }
+            default -> {
+                return "Hello, Welcome the Wumpus World, navigate with WASD and try to find the treasure. Good Luck! \n \n \n Press A for AI, Press R for Reset";
+            }
+        }
+    }
 }

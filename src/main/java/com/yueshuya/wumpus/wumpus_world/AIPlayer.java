@@ -136,8 +136,7 @@ public class AIPlayer {
                 return directionToPrevious;
             }
         }
-        return null; // If move history is empty, return null
-
+        return null;
     }
     // Determines direction from current to a target position
     private String getDirectionTo(Point2D from, Point2D to) {
@@ -169,12 +168,17 @@ public class AIPlayer {
                 default -> heuristic -= 2; // Encourage exploring unknown tiles
             }
 
-            // Encourage moves closer to treasure location if known
-            Point2D treasureLocation = findTreasure();
-            if (treasureLocation != null) {
-                heuristic += Math.abs(position.getX() - treasureLocation.getX()) +
-                        Math.abs(position.getY() - treasureLocation.getY());
+            //I have not idea what chat gpt wrote here - it works
+            List<Point2D> goal = findTreasure();
+            if (goal != null && !goal.isEmpty()) {
+                double closestCandidate = goal.stream()
+                        .mapToDouble(candidate -> Math.abs(position.getX() - candidate.getX()) +
+                                Math.abs(position.getY() - candidate.getY()))
+                        .min()
+                        .orElse(Double.MAX_VALUE);
+                heuristic += closestCandidate;
             }
+
         }
 
 
@@ -183,14 +187,8 @@ public class AIPlayer {
     }
 
     private void updateDanger(Point2D sensoryPosition) {
-        List<Point2D> adjacentPositions = Arrays.asList(
-                new Point2D(sensoryPosition.getX(), sensoryPosition.getY() - 1), // Up
-                new Point2D(sensoryPosition.getX(), sensoryPosition.getY() + 1), // Down
-                new Point2D(sensoryPosition.getX() - 1, sensoryPosition.getY()), // Left
-                new Point2D(sensoryPosition.getX() + 1, sensoryPosition.getY())  // Right
-        );
 
-        for (Point2D pos : adjacentPositions) {
+        for (Point2D pos : getAdjacentPositions(sensoryPosition)) {
             if (isWithinBounds(pos) && !closedList.contains(pos)) {
                 double hazardHeuristic = 20; // Increase heuristic for adjacent danger perception
                 Node node = nodes.getOrDefault(pos, new Node(pos));
@@ -226,15 +224,35 @@ public class AIPlayer {
                 world.getBackTile(position) != World.SPIDER;
     }
 
-    private Point2D findTreasure() {
-        for (Map.Entry<Point2D, Node> entry : nodes.entrySet()) {
-            if (world.getBackTile(entry.getKey()) == World.GLITTER) {
-                return entry.getKey();
+    private List<Point2D> findTreasure() {
+            List<Point2D> candidates = new ArrayList<>();
+
+            // Iterate over explored tiles, looking for GLITTER indicators
+            for (Map.Entry<Point2D, Node> entry : nodes.entrySet()) {
+                Point2D glitterPosition = entry.getKey();
+
+                // Check if the current tile has GLITTER
+                if (world.getBackTile(glitterPosition) == World.GLITTER) {
+                    // Generate potential treasure locations adjacent to the GLITTER tile
+                    for (Point2D adjacent : getAdjacentPositions(glitterPosition)) {
+                        if (isWithinBounds(adjacent) && !closedList.contains(adjacent)) {
+                            candidates.add(adjacent); // Add valid adjacent tiles as treasure candidates
+                        }
+                    }
+                }
             }
-        }
-        return null;
+
+            return candidates.isEmpty() ? null : candidates;
     }
 
+    private List<Point2D> getAdjacentPositions(Point2D position) {
+        return Arrays.asList(
+                new Point2D(position.getX(), position.getY() - 1), // Up
+                new Point2D(position.getX(), position.getY() + 1), // Down
+                new Point2D(position.getX() - 1, position.getY()), // Left
+                new Point2D(position.getX() + 1, position.getY())  // Right
+        );
+    }
 
     public void reset() {
         player.reset();

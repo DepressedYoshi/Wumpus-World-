@@ -1,17 +1,24 @@
 package com.yueshuya.wumpus.wumpus_world;
 import javafx.event.ActionEvent;
 import javafx.geometry.Point2D;
+import javafx.geometry.Pos;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.control.TextArea;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.paint.Color;
+import javafx.scene.text.Font;
+import javafx.scene.text.TextAlignment;
+
+import java.util.Objects;
 
 
 public class WumpusController {
-    private WumpusApplication app;
+    private static WumpusApplication app;
     private final AnchorPane anchorPane;
     private final Player player;
     private static World world;
@@ -29,6 +36,14 @@ public class WumpusController {
     private Button leftButton;
     private Button rightButton;
 
+    private Label bannerLabel;
+    private static Label scoreLabel;
+    private static Label messageArea;
+
+    Font titleFont = Font.loadFont(getClass().getResourceAsStream("/lib/Stanford_Breath.ttf"), 48);
+    Font messageFont = Font.loadFont(getClass().getResourceAsStream("/lib/Morsan.ttf"), 24);
+
+
     public WumpusController(WumpusApplication app){
         this.app = app;
         anchorPane = new AnchorPane();
@@ -43,6 +58,43 @@ public class WumpusController {
     private void createGui(){
         createCanvas();
         createButtons();
+        createText();
+    }
+
+    private void createText() {
+        // Initialize banner and message area
+        bannerLabel = new Label("Wumpus World");
+        bannerLabel.setFont(titleFont);
+        bannerLabel.setTextFill(Color.WHITE);
+        bannerLabel.setTextAlignment(TextAlignment.CENTER);
+        bannerLabel.setAlignment(Pos.CENTER);
+
+
+        scoreLabel = new Label("Score: " + app.getScore());
+        scoreLabel.setFont(messageFont);
+        scoreLabel.setTextFill(Color.WHITE);
+
+        messageArea = new Label(app.getMessage(0));
+        messageArea.setFont(messageFont);
+        messageArea.setTextFill(Color.WHITE);
+        messageArea.setTextAlignment(TextAlignment.CENTER);
+        messageArea.setWrapText(true);
+
+        // Set layout positions for banner and message area
+        AnchorPane.setTopAnchor(bannerLabel, 10.0);
+        AnchorPane.setLeftAnchor(bannerLabel, 10.0);
+        AnchorPane.setRightAnchor(bannerLabel, 10.0);
+
+        AnchorPane.setBottomAnchor(scoreLabel, 100.0);
+        AnchorPane.setRightAnchor(scoreLabel, 100.0);
+
+        AnchorPane.setTopAnchor(messageArea, -100.0);
+        AnchorPane.setRightAnchor(messageArea, 20.0);
+        messageArea.setPrefSize(300, 600);
+
+        // Add banner and message area to the AnchorPane
+        anchorPane.getChildren().addAll(bannerLabel, messageArea, scoreLabel);
+
     }
 
     private void createCanvas() {
@@ -57,16 +109,16 @@ public class WumpusController {
 
 
     private void createButtons() {
-        pitButton = createButton(130.0, 200.0, world.getPitTile());
-        spiderButton = createButton(190.0, 200.0, world.getSpidertile());
-        wumpusButton = createButton(250.0, 200.0, world.getWumpustile());
-        chestButton = createButton(310.0, 200.0, world.getGoldTile());
-        groundButton = createButton(370.0, 200.0, world.getGroundTile());
-        startButton = createButton(430, 200.0, world.getQuestion());
-        upButton = createButton(510, 200.0, world.getUpArrow());
-        downButton = createButton(570, 200.0, world.getDownArrow());
-        leftButton = createButton(570, 270.0,world.getLeftArrow());
-        rightButton = createButton(570, 130,world.getRightArrow());
+        pitButton = createButton(130.0, 450.0, world.getPitTile());
+        spiderButton = createButton(190.0, 450.0, world.getSpidertile());
+        wumpusButton = createButton(250.0, 450.0, world.getWumpustile());
+        chestButton = createButton(310.0, 450.0, world.getGoldTile());
+        groundButton = createButton(370.0, 450.0, world.getGroundTile());
+        startButton = createButton(430.0, 450.0, world.getQuestion());
+        upButton = createButton(520.0, 450.0, world.getUpArrow());
+        downButton = createButton(580.0, 450.0, world.getDownArrow());
+        leftButton = createButton(580.0, 520.0,world.getLeftArrow());
+        rightButton = createButton(580.0, 380.0,world.getRightArrow());
 
     }
     private Button createButton(double topAnchor, double rightAnchor, ImageView imageView) {
@@ -86,7 +138,7 @@ public class WumpusController {
         wumpusButton.setOnAction(this::handleButtonClick);
         chestButton.setOnAction(this::handleButtonClick);
         groundButton.setOnAction(this::handleButtonClick);
-        startButton.setOnAction(this::handleButtonClick);
+        startButton.setOnAction(e -> app.toggleAIControl());
 
         rightButton.setOnAction(e -> app.movePlayer("right"));
         upButton.setOnAction(e -> app.movePlayer("up"));
@@ -142,6 +194,7 @@ public class WumpusController {
         return anchorPane;
     }
 
+
     public static void drawMap() {
         final int XOFFSET = 150;
         final int YOFFSET = 120;
@@ -159,5 +212,11 @@ public class WumpusController {
                 }
             }
         }
+        updateText();
+    }
+
+    private static void updateText() {
+        scoreLabel.setText("Score: " + app.getScore());
+        messageArea.setText(app.getMessage(1));
     }
 }

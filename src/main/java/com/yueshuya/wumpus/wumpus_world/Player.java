@@ -11,6 +11,7 @@ public class Player {
     public Player() {
         currentLocation = startLocation;
         moveHistory = new Stack<>();
+        moveHistory.push(startLocation);
     }
 
     public static boolean HasGold() {
@@ -79,6 +80,7 @@ public class Player {
     public void reset() {
         currentLocation = startLocation;
         moveHistory.clear();
+        moveHistory.push(startLocation);
         hasGold = false;
     }
 
