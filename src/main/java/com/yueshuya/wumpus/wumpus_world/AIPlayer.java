@@ -13,6 +13,8 @@ public class AIPlayer {
     private Point2D currentLocation;
     private boolean foundTreasure = false;
     private boolean backtracking = false;
+    private List<Point2D> returnPath = new ArrayList<>(); // Stores the reconstructed path
+
 
     public AIPlayer(Player player, World world) {
         this.player = player;
@@ -20,6 +22,7 @@ public class AIPlayer {
         this.openList = new PriorityQueue<>(Comparator.comparingDouble(Node::getF));
         this.closedList = new HashSet<>();
         this.nodes = new HashMap<>();
+
 
         this.currentLocation = player.getStartLocation();
     }
@@ -32,28 +35,32 @@ public class AIPlayer {
             Node startNode = new Node(currentLocation, 0, calculateHeuristic(currentLocation));
             openList.add(startNode);
             nodes.put(currentLocation, startNode);
+
         }
 
         if (world.getRealPre() == World.TREASURE) {
-            goBack();
+            foundTreasure = true;
+            Player.setHasGold(true);
+            reconstructPath(currentLocation); // Build return path to start
         }
+
         closedList.add(currentLocation);
         String direction = decideNextMove();
 
-        if (direction != null) {
-            boolean moved = player.move(direction, world);
-            if (moved) {
-                currentLocation = player.getCurrentLocation();
-                backtracking = false;
-            } else {
-                System.out.println("Stucked - please debugg");
-            }
+        if (direction != null && player.move(direction, world)) {
+            currentLocation = player.getCurrentLocation();
+            backtracking = false;
         } else {
+            System.out.println("Stuck at " + currentLocation + "; initiating backtrack.");
             backtracking = true;
         }
     }
 
     private String decideNextMove() {
+        if (foundTreasure && !returnPath.isEmpty()) {
+            // Follow the reconstructed path back to the start
+            return followReturnPath();
+        }
         // Check if the AI detects a sensory tile, triggering backtracking if needed
         if (detectsSensoryTile(currentLocation)) {
             System.out.println("Sensory tile detected at " + currentLocation + ". Initiating backtrack.");
@@ -63,6 +70,20 @@ public class AIPlayer {
         // Determine next move based on backtracking state
         return backtracking ? backtrack() : selectBestMove(currentLocation);
     }
+
+    private String followReturnPath() {
+        if (returnPath.isEmpty()) {
+            System.out.println("Return path is empty; AI has reached the start.");
+            return null;
+        }
+        // Move towards the next position in the return path
+        Point2D nextPosition = returnPath.remove(returnPath.size()-1);
+        if (nextPosition.equals(currentLocation)){
+            nextPosition = returnPath.remove(returnPath.size()-1);
+        }
+        return getDirectionTo(currentLocation, nextPosition);
+    }
+
     private boolean detectsSensoryTile(Point2D position) {
         int tile = world.getBackTile(position);
         int realTile = tile > 11 ? tile - 20 : tile;
@@ -71,37 +92,66 @@ public class AIPlayer {
     }
 
 
-    private void goBack() {
-        openList.clear();
-        closedList.clear();
-        nodes.clear();
-        foundTreasure = true;
-        Player.setHasGold(true);
+    private void reconstructPath(Point2D endPosition) {
+        returnPath.clear(); // Clear any existing path data
+        Node currentNode = nodes.get(endPosition);
+
+        while (currentNode != null) {
+            if (!returnPath.isEmpty()) {
+                Point2D lastPosition = returnPath.get(0);
+
+                // Check if the node is adjacent to the last position in returnPath
+                if (Math.abs(lastPosition.getX() - currentNode.position.getX()) <= 1 &&
+                        Math.abs(lastPosition.getY() - currentNode.position.getY()) <= 1) {
+                    returnPath.add(0, currentNode.position); // Add to the beginning
+                } else {
+                    System.err.println("Non-adjacent node found in reconstructPath. Skipping node: " + currentNode.position);
+                }
+            } else {
+                returnPath.add(0, currentNode.position); // Add the first node unconditionally
+            }
+            currentNode = currentNode.parent;
+        }
     }
+
+
+
 
     private String selectBestMove(Point2D currentPosition) {
         List<String> directions = Arrays.asList("up", "down", "left", "right");
         String bestDirection = null;
-        double lowestHeuristic = Double.MAX_VALUE;
+        double lowestF = Double.MAX_VALUE;
 
         for (String direction : directions) {
             Point2D neighborPos = getNeighborPosition(currentPosition, direction);
 
             if (isValidMove(neighborPos) && !closedList.contains(neighborPos)) {
-                double heuristic = lookAhead(neighborPos, 10);
+                double g = nodes.get(currentPosition).g + 1; // Assuming uniform movement cost of 1
+                double h = calculateHeuristic(neighborPos);
+                double f = g + h;
 
-                if (heuristic < lowestHeuristic) {
-                    lowestHeuristic = heuristic;
+                // Check if neighbor node exists and if the new g cost is lower than the existing one
+                if (!nodes.containsKey(neighborPos) || g < nodes.get(neighborPos).g) {
+                    Node neighborNode = new Node(neighborPos, g, h, nodes.get(currentPosition));
+                    nodes.put(neighborPos, neighborNode);
+
+                    // Only add to openList if not in closedList
+                    if (!closedList.contains(neighborPos)) {
+                        openList.add(neighborNode);
+                    }
+                }
+
+                // Select the direction with the lowest f cost
+                if (f < lowestF) {
+                    lowestF = f;
                     bestDirection = direction;
                 }
             }
         }
 
-        if (bestDirection == null) {
-            backtracking = true;
-        }
+        // If no valid direction is found, initiate backtracking
+        return bestDirection == null ? backtrack() : bestDirection;
 
-        return bestDirection;
     }
     private double lookAhead(Point2D position, int depth) {
         if (depth == 0 || closedList.contains(position)) {
@@ -144,6 +194,7 @@ public class AIPlayer {
         if (to.getX() == from.getX() && to.getY() == from.getY() + 1) return "down";
         if (to.getX() == from.getX() - 1 && to.getY() == from.getY()) return "left";
         if (to.getX() == from.getX() + 1 && to.getY() == from.getY()) return "right";
+        System.out.println("dude, you are trying to get to " + to);
         return null;
     }
 
@@ -164,7 +215,7 @@ public class AIPlayer {
                     updateDanger(position); // Mark surrounding tiles as potentially dangerous
                 }
                 case World.SPIDER, World.WUMPUS, World.PIT -> heuristic += 50; // Strong penalty for direct hazards
-                case World.GLITTER -> heuristic -= 50; // Incentive for treasure
+                case World.GLITTER -> heuristic -= 15; // Incentive for treasure
                 default -> heuristic -= 2; // Encourage exploring unknown tiles
             }
 
@@ -178,10 +229,7 @@ public class AIPlayer {
                         .orElse(Double.MAX_VALUE);
                 heuristic += closestCandidate;
             }
-
         }
-
-
         System.out.println("Heuristic for position " + position + " is: " + heuristic);
         return heuristic;
     }
@@ -282,7 +330,16 @@ public class AIPlayer {
             this.g = g;
             this.h = h;
             this.f = g + h;
+            this.parent = null;
         }
+        Node(Point2D position, double g, double h, Node parent) {
+            this.position = position;
+            this.g = g;
+            this.h = h;
+            this.f = g + h;
+            this.parent = parent; // Set the parent node
+        }
+
 
         double getF() {
             return f;

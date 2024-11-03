@@ -258,6 +258,8 @@ public class World {
     }
 
     public void reset() {
+        clear();
+        populateWorld();
         PREVAL = 0;
         placePlayer();
         genFogOfWar();
@@ -266,12 +268,7 @@ public class World {
     public void clear() {
         for (int i = 0; i < grid.length; i++) {
             for (int j = 0; j < grid[0].length; j++) {
-                if (grid[i][j]==PLAYER){
-                    grid[i][j] = getRealPre();
-                }
-                if (grid[i][j] == EMPTY_CHEST){
-                    grid[i][j] = TREASURE;
-                }
+                    grid[i][j] = EMPTY;
             }
         }
     }

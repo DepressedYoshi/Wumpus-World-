@@ -72,7 +72,6 @@ public class WumpusApplication extends Application {
     }
 
     public void reset() {
-        world.clear();
         player.reset();
         world.reset();
         World.setGameover(false);
