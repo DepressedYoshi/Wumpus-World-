@@ -26,7 +26,6 @@ public class AIPlayer {
 
     public void runAI() {
         if (foundTreasure && player.getCurrentLocation().equals(player.getStartLocation())){
-            System.out.println("the AI completed the mission");
             return;
         }
         if (openList.isEmpty()) {
@@ -34,37 +33,43 @@ public class AIPlayer {
             openList.add(startNode);
             nodes.put(currentLocation, startNode);
         }
-        // Run one step of the AI's movement
-        if (!openList.isEmpty()) {
-            Node current = openList.poll();
-            System.out.println("Current AI Location: " + currentLocation);
-            if (world.getRealPre() == World.TREASURE) {
-                goBack();
-            }
-            closedList.add(currentLocation);
-            String direction ;
-            if (!backtracking) {
-                direction = selectBestMove(currentLocation);
-            } else {
-                direction = backtrack();
-            }
 
-            if (direction != null) {
-                System.out.println("AI selected direction: " + direction);
-                boolean moved = player.move(direction, world);
-                if (moved) {
-                    currentLocation = player.getCurrentLocation();
-                    System.out.println("Moved to new location: " + currentLocation);
-                    backtracking = false;
-                } else {
-                    System.out.println("Move failed: " + direction);
-                }
+        if (world.getRealPre() == World.TREASURE) {
+            goBack();
+        }
+        closedList.add(currentLocation);
+        String direction = decideNextMove();
+
+        if (direction != null) {
+            boolean moved = player.move(direction, world);
+            if (moved) {
+                currentLocation = player.getCurrentLocation();
+                backtracking = false;
             } else {
-                System.out.println("No valid direction found; AI is stuck.");
-                backtracking = true;
+                System.out.println("Stucked - please debugg");
             }
+        } else {
+            backtracking = true;
         }
     }
+
+    private String decideNextMove() {
+        // Check if the AI detects a sensory tile, triggering backtracking if needed
+        if (detectsSensoryTile(currentLocation)) {
+            System.out.println("Sensory tile detected at " + currentLocation + ". Initiating backtrack.");
+            backtracking = true;
+        }
+
+        // Determine next move based on backtracking state
+        return backtracking ? backtrack() : selectBestMove(currentLocation);
+    }
+    private boolean detectsSensoryTile(Point2D position) {
+        int tile = world.getBackTile(position);
+        int realTile = tile > 11 ? tile - 20 : tile;
+
+        return realTile == World.BREEZ || realTile == World.WEB || realTile == World.STINK;
+    }
+
 
     private void goBack() {
         openList.clear();
@@ -72,7 +77,6 @@ public class AIPlayer {
         nodes.clear();
         foundTreasure = true;
         Player.setHasGold(true);
-        System.out.println("Treasure found! Returning to start.");
     }
 
     private String selectBestMove(Point2D currentPosition) {
@@ -84,26 +88,22 @@ public class AIPlayer {
             Point2D neighborPos = getNeighborPosition(currentPosition, direction);
 
             if (isValidMove(neighborPos) && !closedList.contains(neighborPos)) {
-                double heuristic = calculateLookaheadHeuristic(neighborPos, 3);
-                System.out.println("Evaluating direction " + direction + " with heuristic: " + heuristic);
+                double heuristic = lookAhead(neighborPos, 10);
 
                 if (heuristic < lowestHeuristic) {
                     lowestHeuristic = heuristic;
                     bestDirection = direction;
                 }
-            } else {
-                System.out.println("Direction " + direction + " is invalid or already visited.");
             }
         }
 
         if (bestDirection == null) {
-            System.out.println("Fallback needed: no optimal move found.");
             backtracking = true;
         }
 
         return bestDirection;
     }
-    private double calculateLookaheadHeuristic(Point2D position, int depth) {
+    private double lookAhead(Point2D position, int depth) {
         if (depth == 0 || closedList.contains(position)) {
             return calculateHeuristic(position);
         }
@@ -114,7 +114,7 @@ public class AIPlayer {
         for (String direction : Arrays.asList("up", "down", "left", "right")) {
             Point2D nextPos = getNeighborPosition(position, direction);
             if (isValidMove(nextPos)) {
-                double heuristic = calculateLookaheadHeuristic(nextPos, depth - 1);
+                double heuristic = lookAhead(nextPos, depth - 1);
                 lowestHeuristic = Math.min(lowestHeuristic, heuristic);
             }
         }
@@ -133,12 +133,9 @@ public class AIPlayer {
 
             // Attempt to move back if valid
             if (directionToPrevious != null && isValidMove(previousPosition)) {
-                System.out.println("Backtracking to previous location: " + previousPosition);
                 return directionToPrevious;
             }
         }
-
-        System.out.println("Backtracking exhausted; no moves left.");
         return null; // If move history is empty, return null
 
     }
@@ -150,23 +147,29 @@ public class AIPlayer {
         if (to.getX() == from.getX() + 1 && to.getY() == from.getY()) return "right";
         return null;
     }
+
     private double calculateHeuristic(Point2D position) {
         double heuristic = 0;
         int tile = world.getBackTile(position);
-        int realTile = tile > 20 ? tile - 20 : tile; // Adjust fogged values for heuristic
+        int realTile = tile > 11 ? tile - 20 : tile; // Adjust fogged values for heuristic
 
         if (foundTreasure) {
-            // Calculate heuristic to reach the start if treasure is found
+            // Heuristic to prioritize reaching the start if treasure is found
             heuristic += Math.abs(position.getX() - player.getStartLocation().getX()) +
                     Math.abs(position.getY() - player.getStartLocation().getY());
         } else {
-            // Calculate heuristic based on nearby hazards and treasure proximity
+            // Adjust heuristic based on nearby hazards and treasure proximity
             switch (realTile) {
-                case World.BREEZ -> heuristic += 5;
-                case World.WEB -> heuristic += 5;
-                case World.STINK -> heuristic += 10;
-                case World.GLITTER -> heuristic -= 50; // Strong incentive for treasure
+                case World.BREEZ, World.WEB, World.STINK -> {
+                    heuristic += 10; // Moderate penalty for sensory indicators
+                    updateDanger(position); // Mark surrounding tiles as potentially dangerous
+                }
+                case World.SPIDER, World.WUMPUS, World.PIT -> heuristic += 50; // Strong penalty for direct hazards
+                case World.GLITTER -> heuristic -= 50; // Incentive for treasure
+                default -> heuristic -= 2; // Encourage exploring unknown tiles
             }
+
+            // Encourage moves closer to treasure location if known
             Point2D treasureLocation = findTreasure();
             if (treasureLocation != null) {
                 heuristic += Math.abs(position.getX() - treasureLocation.getX()) +
@@ -174,11 +177,36 @@ public class AIPlayer {
             }
         }
 
-        if (tile > 20) heuristic += 2;
 
         System.out.println("Heuristic for position " + position + " is: " + heuristic);
         return heuristic;
     }
+
+    private void updateDanger(Point2D sensoryPosition) {
+        List<Point2D> adjacentPositions = Arrays.asList(
+                new Point2D(sensoryPosition.getX(), sensoryPosition.getY() - 1), // Up
+                new Point2D(sensoryPosition.getX(), sensoryPosition.getY() + 1), // Down
+                new Point2D(sensoryPosition.getX() - 1, sensoryPosition.getY()), // Left
+                new Point2D(sensoryPosition.getX() + 1, sensoryPosition.getY())  // Right
+        );
+
+        for (Point2D pos : adjacentPositions) {
+            if (isWithinBounds(pos) && !closedList.contains(pos)) {
+                double hazardHeuristic = 20; // Increase heuristic for adjacent danger perception
+                Node node = nodes.getOrDefault(pos, new Node(pos));
+                node.h += hazardHeuristic;
+                node.f = node.g + node.h;
+                nodes.put(pos, node); // Update nodes map with potential hazard heuristic
+            }
+        }
+    }
+
+    // Utility method to check if a position is within grid bounds
+    private boolean isWithinBounds(Point2D position) {
+        return position.getX() >= 0 && position.getX() < world.getGrid().length &&
+                position.getY() >= 0 && position.getY() < world.getGrid()[0].length;
+    }
+
 
     private Point2D getNeighborPosition(Point2D current, String direction) {
         return switch (direction.toLowerCase()) {
@@ -191,34 +219,22 @@ public class AIPlayer {
     }
 
     private boolean isValidMove(Point2D position) {
-        boolean valid = position.getX() >= 0 && position.getX() < 10 &&
+        return position.getX() >= 0 && position.getX() < 10 &&
                 position.getY() >= 0 && position.getY() < 10 &&
                 world.getBackTile(position) != World.WUMPUS &&
                 world.getBackTile(position) != World.PIT &&
                 world.getBackTile(position) != World.SPIDER;
-        if (!valid) {
-            System.out.println("Position " + position + " is not a valid move.");
-        }
-        return valid;
     }
 
     private Point2D findTreasure() {
         for (Map.Entry<Point2D, Node> entry : nodes.entrySet()) {
             if (world.getBackTile(entry.getKey()) == World.GLITTER) {
-                System.out.println("Treasure detected at position: " + entry.getKey());
                 return entry.getKey();
             }
         }
         return null;
     }
 
-    public boolean isFoundTreasure() {
-        return foundTreasure;
-    }
-
-    public void setFoundTreasure(boolean foundTreasure) {
-        this.foundTreasure = foundTreasure;
-    }
 
     public void reset() {
         player.reset();
