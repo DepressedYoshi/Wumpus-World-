@@ -259,9 +259,9 @@ public class World {
 
     public void reset() {
         clear();
-        populateWorld();
         PREVAL = 0;
         placePlayer();
+        populateWorld();
         genFogOfWar();
     }
 

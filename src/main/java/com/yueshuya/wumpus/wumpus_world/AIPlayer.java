@@ -51,6 +51,7 @@ public class AIPlayer {
             currentLocation = player.getCurrentLocation();
             backtracking = false;
         } else {
+            //todo risk taking logic here
             System.out.println("Stuck at " + currentLocation + "; initiating backtrack.");
             backtracking = true;
         }
@@ -63,10 +64,10 @@ public class AIPlayer {
         }
         // Check if the AI detects a sensory tile, triggering backtracking if needed
         if (detectsSensoryTile(currentLocation)) {
+            //todo solve the getting stuck here - dont judt bakc trakc blidinly - call a a diff methid
             System.out.println("Sensory tile detected at " + currentLocation + ". Initiating backtrack.");
             backtracking = true;
         }
-
         // Determine next move based on backtracking state
         return backtracking ? backtrack() : selectBestMove(currentLocation);
     }
@@ -86,9 +87,7 @@ public class AIPlayer {
 
     private boolean detectsSensoryTile(Point2D position) {
         int tile = world.getBackTile(position);
-        int realTile = tile > 11 ? tile - 20 : tile;
-
-        return realTile == World.BREEZ || realTile == World.WEB || realTile == World.STINK;
+        return tile == World.BREEZ || tile == World.WEB || tile == World.STINK;
     }
 
 
@@ -134,13 +133,11 @@ public class AIPlayer {
                 if (!nodes.containsKey(neighborPos) || g < nodes.get(neighborPos).g) {
                     Node neighborNode = new Node(neighborPos, g, h, nodes.get(currentPosition));
                     nodes.put(neighborPos, neighborNode);
-
                     // Only add to openList if not in closedList
                     if (!closedList.contains(neighborPos)) {
                         openList.add(neighborNode);
                     }
                 }
-
                 // Select the direction with the lowest f cost
                 if (f < lowestF) {
                     lowestF = f;
@@ -153,28 +150,9 @@ public class AIPlayer {
         return bestDirection == null ? backtrack() : bestDirection;
 
     }
-    private double lookAhead(Point2D position, int depth) {
-        if (depth == 0 || closedList.contains(position)) {
-            return calculateHeuristic(position);
-        }
-
-        closedList.add(position);
-        double lowestHeuristic = Double.MAX_VALUE;
-
-        for (String direction : Arrays.asList("up", "down", "left", "right")) {
-            Point2D nextPos = getNeighborPosition(position, direction);
-            if (isValidMove(nextPos)) {
-                double heuristic = lookAhead(nextPos, depth - 1);
-                lowestHeuristic = Math.min(lowestHeuristic, heuristic);
-            }
-        }
-
-        closedList.remove(position); // Restore closed list for accurate tracking
-        return lowestHeuristic;
-    }
 
     private String backtrack(){
-        while (!player.getMoveHistory().isEmpty()) {
+        if (!player.getMoveHistory().isEmpty()) {
             // Retrieve the last position in history
             Point2D previousPosition = player.getMoveHistory().pop();
 
@@ -194,32 +172,27 @@ public class AIPlayer {
         if (to.getX() == from.getX() && to.getY() == from.getY() + 1) return "down";
         if (to.getX() == from.getX() - 1 && to.getY() == from.getY()) return "left";
         if (to.getX() == from.getX() + 1 && to.getY() == from.getY()) return "right";
-        System.out.println("dude, you are trying to get to " + to);
         return null;
     }
 
     private double calculateHeuristic(Point2D position) {
         double heuristic = 0;
         int tile = world.getBackTile(position);
-        int realTile = tile > 11 ? tile - 20 : tile; // Adjust fogged values for heuristic
 
         if (foundTreasure) {
-            // Heuristic to prioritize reaching the start if treasure is found
+            // Prioritize reaching the start if treasure is found
             heuristic += Math.abs(position.getX() - player.getStartLocation().getX()) +
                     Math.abs(position.getY() - player.getStartLocation().getY());
         } else {
             // Adjust heuristic based on nearby hazards and treasure proximity
-            switch (realTile) {
-                case World.BREEZ, World.WEB, World.STINK -> {
-                    heuristic += 10; // Moderate penalty for sensory indicators
-                    updateDanger(position); // Mark surrounding tiles as potentially dangerous
-                }
-                case World.SPIDER, World.WUMPUS, World.PIT -> heuristic += 50; // Strong penalty for direct hazards
-                case World.GLITTER -> heuristic -= 15; // Incentive for treasure
+            switch (tile) {
+                case World.BREEZ, World.WEB, World.STINK -> heuristic += 5; // Reduced penalty for sensory indicators
+                case World.SPIDER, World.WUMPUS, World.PIT -> heuristic += 50; // High penalty for actual hazards
+                case World.GLITTER -> heuristic -= 20; // Incentive for treasure
                 default -> heuristic -= 2; // Encourage exploring unknown tiles
             }
 
-            //I have not idea what chat gpt wrote here - it works
+            // Encourage moves closer to treasure location if known
             List<Point2D> goal = findTreasure();
             if (goal != null && !goal.isEmpty()) {
                 double closestCandidate = goal.stream()
@@ -230,21 +203,7 @@ public class AIPlayer {
                 heuristic += closestCandidate;
             }
         }
-        System.out.println("Heuristic for position " + position + " is: " + heuristic);
         return heuristic;
-    }
-
-    private void updateDanger(Point2D sensoryPosition) {
-
-        for (Point2D pos : getAdjacentPositions(sensoryPosition)) {
-            if (isWithinBounds(pos) && !closedList.contains(pos)) {
-                double hazardHeuristic = 20; // Increase heuristic for adjacent danger perception
-                Node node = nodes.getOrDefault(pos, new Node(pos));
-                node.h += hazardHeuristic;
-                node.f = node.g + node.h;
-                nodes.put(pos, node); // Update nodes map with potential hazard heuristic
-            }
-        }
     }
 
     // Utility method to check if a position is within grid bounds
