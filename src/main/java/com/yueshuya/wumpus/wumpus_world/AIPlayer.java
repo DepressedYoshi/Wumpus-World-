@@ -64,53 +64,11 @@ public class AIPlayer {
         }
         // Check if the AI detects a sensory tile, triggering backtracking if needed
         if (detectsSensoryTile(currentLocation)) {
-            //todo solve the getting stuck here - dont judt bakc trakc blidinly - call a a diff methid
             System.out.println("Sensory tile detected at " + currentLocation + ". Initiating backtrack.");
             backtracking = true;
         }
         // Determine next move based on backtracking state
         return backtracking ? backtrack() : selectBestMove(currentLocation);
-    }
-
-    private String followReturnPath() {
-        if (returnPath.isEmpty()) {
-            System.out.println("Return path is empty; AI has reached the start.");
-            return null;
-        }
-        // Move towards the next position in the return path
-        Point2D nextPosition = returnPath.remove(returnPath.size()-1);
-        if (nextPosition.equals(currentLocation)){
-            nextPosition = returnPath.remove(returnPath.size()-1);
-        }
-        return getDirectionTo(currentLocation, nextPosition);
-    }
-
-    private boolean detectsSensoryTile(Point2D position) {
-        int tile = world.getBackTile(position);
-        return tile == World.BREEZ || tile == World.WEB || tile == World.STINK;
-    }
-
-
-    private void reconstructPath(Point2D endPosition) {
-        returnPath.clear(); // Clear any existing path data
-        Node currentNode = nodes.get(endPosition);
-
-        while (currentNode != null) {
-            if (!returnPath.isEmpty()) {
-                Point2D lastPosition = returnPath.get(0);
-
-                // Check if the node is adjacent to the last position in returnPath
-                if (Math.abs(lastPosition.getX() - currentNode.position.getX()) <= 1 &&
-                        Math.abs(lastPosition.getY() - currentNode.position.getY()) <= 1) {
-                    returnPath.add(0, currentNode.position); // Add to the beginning
-                } else {
-                    System.err.println("Non-adjacent node found in reconstructPath. Skipping node: " + currentNode.position);
-                }
-            } else {
-                returnPath.add(0, currentNode.position); // Add the first node unconditionally
-            }
-            currentNode = currentNode.parent;
-        }
     }
 
 
@@ -166,14 +124,6 @@ public class AIPlayer {
         }
         return null;
     }
-    // Determines direction from current to a target position
-    private String getDirectionTo(Point2D from, Point2D to) {
-        if (to.getX() == from.getX() && to.getY() == from.getY() - 1) return "up";
-        if (to.getX() == from.getX() && to.getY() == from.getY() + 1) return "down";
-        if (to.getX() == from.getX() - 1 && to.getY() == from.getY()) return "left";
-        if (to.getX() == from.getX() + 1 && to.getY() == from.getY()) return "right";
-        return null;
-    }
 
     private double calculateHeuristic(Point2D position) {
         double heuristic = 0;
@@ -205,14 +155,44 @@ public class AIPlayer {
         }
         return heuristic;
     }
+    private String followReturnPath() {
+        if (returnPath.isEmpty()) {
+            System.out.println("Return path is empty; AI has reached the start.");
+            return null;
+        }
+        // Move towards the next position in the return path
+        Point2D nextPosition = returnPath.remove(returnPath.size()-1);
+        if (nextPosition.equals(currentLocation)){
+            nextPosition = returnPath.remove(returnPath.size()-1);
+        }
+        return getDirectionTo(currentLocation, nextPosition);
+    }
 
-    // Utility method to check if a position is within grid bounds
+
+    private void reconstructPath(Point2D endPosition) {
+        returnPath.clear();
+        Node currentNode = nodes.get(endPosition);
+        while (currentNode != null) {
+            returnPath.add(0, currentNode.position);
+            currentNode = currentNode.parent;
+        }
+    }
+    private boolean detectsSensoryTile(Point2D position) {
+        int tile = world.getBackTile(position);
+        return tile == World.BREEZ || tile == World.WEB || tile == World.STINK;
+    }
+    // Determines direction from current to a target position
+    private String getDirectionTo(Point2D from, Point2D to) {
+        if (to.getX() == from.getX() && to.getY() == from.getY() - 1) return "up";
+        if (to.getX() == from.getX() && to.getY() == from.getY() + 1) return "down";
+        if (to.getX() == from.getX() - 1 && to.getY() == from.getY()) return "left";
+        if (to.getX() == from.getX() + 1 && to.getY() == from.getY()) return "right";
+        return null;
+    }
     private boolean isWithinBounds(Point2D position) {
         return position.getX() >= 0 && position.getX() < world.getGrid().length &&
                 position.getY() >= 0 && position.getY() < world.getGrid()[0].length;
     }
-
-
     private Point2D getNeighborPosition(Point2D current, String direction) {
         return switch (direction.toLowerCase()) {
             case "up" -> new Point2D(current.getX(), current.getY() - 1);
@@ -222,7 +202,6 @@ public class AIPlayer {
             default -> current;
         };
     }
-
     private boolean isValidMove(Point2D position) {
         return position.getX() >= 0 && position.getX() < 10 &&
                 position.getY() >= 0 && position.getY() < 10 &&
@@ -230,28 +209,20 @@ public class AIPlayer {
                 world.getBackTile(position) != World.PIT &&
                 world.getBackTile(position) != World.SPIDER;
     }
-
     private List<Point2D> findTreasure() {
             List<Point2D> candidates = new ArrayList<>();
-
-            // Iterate over explored tiles, looking for GLITTER indicators
             for (Map.Entry<Point2D, Node> entry : nodes.entrySet()) {
                 Point2D glitterPosition = entry.getKey();
-
-                // Check if the current tile has GLITTER
                 if (world.getBackTile(glitterPosition) == World.GLITTER) {
-                    // Generate potential treasure locations adjacent to the GLITTER tile
                     for (Point2D adjacent : getAdjacentPositions(glitterPosition)) {
                         if (isWithinBounds(adjacent) && !closedList.contains(adjacent)) {
-                            candidates.add(adjacent); // Add valid adjacent tiles as treasure candidates
+                            candidates.add(adjacent);
                         }
                     }
                 }
             }
-
             return candidates.isEmpty() ? null : candidates;
     }
-
     private List<Point2D> getAdjacentPositions(Point2D position) {
         return Arrays.asList(
                 new Point2D(position.getX(), position.getY() - 1), // Up
@@ -260,7 +231,6 @@ public class AIPlayer {
                 new Point2D(position.getX() + 1, position.getY())  // Right
         );
     }
-
     public void reset() {
         player.reset();
         openList.clear();
